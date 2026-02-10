@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 
 scripts
+.env.local
+.env
