@@ -11,7 +11,7 @@ export const DAMAGE_TYPES = [
   "deformation",
 ] as const;
 
-export const SEVERITIES = ["minor", "moderate", "severe"] as const;
+export const SEVERITIES = ["minor", "major"] as const;
 
 // ===============================
 // PARTLIST (SOURCE OF TRUTH)
@@ -51,6 +51,7 @@ export const PART_HIERARCHY = {
       ],
       floorboard_and_frame: [
         "floorboard",
+        "front_cover_panel",
         "left_panel",
         "right_panel",
         "left_footrest",
@@ -108,6 +109,7 @@ export const PART_HIERARCHY = {
         "front_mudguard",
         "front_suspension",
         "front_wheel",
+        "front_brake",
       ],
     },
 
@@ -142,6 +144,7 @@ export const PART_HIERARCHY = {
       ],
       wheel_and_brake: [
         "rear_wheel",
+        "rear_brake"
       ],
       rear_bodywork: [
         "rear_cowl",
