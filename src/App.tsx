@@ -120,6 +120,20 @@ export default function App() {
   useEffect(() => {
     fetchImages(5, true);
   }, []);
+  
+  // -----------------------------
+  // Heartbeat (every 2 minutes)
+  // -----------------------------
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      await supabase.rpc("heartbeat", {
+        p_session: sessionId,
+      });
+    }, 2 * 60 * 1000); // 2 minutes
+
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
 
   // -----------------------------
   // Toggle damage (select / deselect)
