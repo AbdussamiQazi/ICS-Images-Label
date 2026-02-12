@@ -118,21 +118,25 @@ export default function App() {
 
 
   useEffect(() => {
-    fetchImages(5, true);
-  }, []);
-  
-  // -----------------------------
-  // Heartbeat (every 2 minutes)
-  // -----------------------------
+      fetchImages(5, true);
+    }, []);
+    
   useEffect(() => {
     const interval = setInterval(async () => {
-      await supabase.rpc("heartbeat", {
+      const { error } = await supabase.rpc("heartbeat_session", {
         p_session: sessionId,
       });
-    }, 2 * 60 * 1000); // 2 minutes
+
+      if (error) {
+        console.error("Heartbeat error:", error);
+      } else {
+        console.log("Heartbeat sent");
+      }
+    }, 2 * 60 * 1000); // every 2 minutes
 
     return () => clearInterval(interval);
   }, [sessionId]);
+
 
 
   // -----------------------------
