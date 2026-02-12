@@ -50,7 +50,8 @@ export default function App() {
   const [noDamage, setNoDamage] = useState(false);
 
 
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refilling, setRefilling] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // -----------------------------
@@ -66,52 +67,58 @@ export default function App() {
   // -----------------------------
   // Fetch image batch (unlabeled, ordered)
   // -----------------------------
-  const fetchImages = async () => {
-    setLoading(true);
+  const fetchImages = async (batch = 5, isInitial = false) => {
+    if (isInitial) {
+      setInitialLoading(true);
+    } else {
+      setRefilling(true);
+    }
 
     try {
-      const { data, error } = await supabase
-        .rpc("claim_next_image", { user_session: sessionId });
+      const { data, error } = await supabase.rpc("claim_next_images", {
+        user_session: sessionId,
+        batch_size: batch,
+      });
 
       if (error) {
         console.error("Claim error:", error);
-        setImages([]);
-        setCurrentIndex(0);
-        setLoading(false);
         return;
       }
 
       if (!data || data.length === 0) {
-        // No images left
-        setImages([]);
-        setCurrentIndex(0);
-        setLoading(false);
+        if (isInitial) setInitialLoading(false);
+        else setRefilling(false);
         return;
       }
 
-      // claim_next_image returns a single row in array form
-      const claimedImage = data[0];
 
-      const imageBatch = [claimedImage];
+      const claimedImages: ImageRow[] = data.map((row: any) => ({
+        id: row.image_id,
+        image_url: row.image_url,
+      }));
 
-      setImages(imageBatch);
-      setCurrentIndex(0);
-
-      // Optional preload (future-safe if you later batch claim)
-      preloadImages(imageBatch.slice(1, 5));
+      setImages((prev) => {
+        const merged = [...prev, ...claimedImages];
+        preloadImages(claimedImages);
+        return merged;
+      });
 
     } catch (err) {
       console.error("Unexpected error:", err);
-      setImages([]);
-      setCurrentIndex(0);
     }
 
-    setLoading(false);
+    if (isInitial) {
+      setInitialLoading(false);
+    } else {
+      setRefilling(false);
+    }
   };
 
 
+
+
   useEffect(() => {
-    fetchImages();
+    fetchImages(5, true);
   }, []);
 
   // -----------------------------
@@ -157,13 +164,13 @@ const recordDamage = (
 
     setSaving(true);
 
-    const { error } = await supabase
-      .from("annotations")
-      .insert({
-        image_id: image.id,
-        vehicle_type: vehicleType,
-        damages,
-      });
+    const { error } = await supabase.rpc("insert_annotation_secure", {
+      p_image_id: image.id,
+      p_vehicle_type: vehicleType,
+      p_damages: noDamage ? [] : damages,
+      p_session: sessionId,
+    });
+
 
     if (error) {
       console.error(error);
@@ -171,6 +178,17 @@ const recordDamage = (
       setSaving(false);
       return;
     }
+    console.log("Current image:", image);
+
+    // ✅ Mark image as labeled and release lock
+    await supabase
+      .from("images")
+      .update({
+        labeled: true,
+        assigned_to: null,
+        assigned_at: null,
+      })
+      .eq("id", image.id);
 
     setVehicleType("");
     setSection(null);
@@ -179,16 +197,22 @@ const recordDamage = (
     setNoDamage(false);
     setSaving(false);
 
-    // Move forward and preload further
-    if (currentIndex + 1 < images.length) {
-      setCurrentIndex((i) => {
-        const nextIndex = i + 1;
-        preloadImages(images.slice(nextIndex + 1, nextIndex + 4));
-        return nextIndex;
-      });
-    } else {
-      fetchImages();
+    // move locally to next image instantly
+    const nextIndex = currentIndex + 1;
+
+    if (nextIndex < images.length) {
+      setCurrentIndex(nextIndex);
+
+      // auto-refill when only 2 left
+    if (images.length - nextIndex <= 2 && !refilling) {
+      fetchImages(3);
     }
+
+    } else {
+      fetchImages(5);
+    }
+
+
   };
 
   // -----------------------------
@@ -198,8 +222,12 @@ const recordDamage = (
     if (!image) return;
 
     const { error } = await supabase
-      .from("images") // IMPORTANT: real table, not view
-      .update({ skipped: true })
+      .from("images")
+      .update({
+        skipped: true,
+        assigned_to: null,
+        assigned_at: null,
+      })
       .eq("id", image.id);
 
     if (error) {
@@ -208,28 +236,25 @@ const recordDamage = (
       return;
     }
 
-    // Reset local state
+    // 🔥 Remove skipped image locally
+    setImages((prev) => prev.filter((img) => img.id !== image.id));
+
+    // Reset UI state
     setVehicleType("");
     setSection(null);
     setExpandedPart(null);
     setDamages([]);
     setNoDamage(false);
 
-
-    // Move forward
-    if (currentIndex + 1 < images.length) {
-      setCurrentIndex((i) => {
-        const nextIndex = i + 1;
-        preloadImages(images.slice(nextIndex + 1, nextIndex + 4));
-        return nextIndex;
-      });
-    } else {
-      fetchImages();
+    // If few images left, refill
+    if (images.length <= 3 && !refilling) {
+      fetchImages(3);
     }
   };
 
 
-  if (loading) {
+
+  if (initialLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
         Loading…
