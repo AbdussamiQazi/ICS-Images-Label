@@ -9,7 +9,6 @@ import {
 
 import type { VehicleType } from "./parts";
 
-const [sessionId] = useState(() => crypto.randomUUID());
 
 const SEVERITIES = ["minor", "major"] as const;
 
@@ -36,6 +35,9 @@ type DamageEntry = {
 };
 
 export default function App() {
+
+  const [sessionId] = useState(() => crypto.randomUUID());
+
   const [images, setImages] = useState<ImageRow[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
