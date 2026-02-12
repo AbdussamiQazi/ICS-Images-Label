@@ -9,6 +9,8 @@ import {
 
 import type { VehicleType } from "./parts";
 
+const [sessionId] = useState(() => crypto.randomUUID());
+
 const SEVERITIES = ["minor", "major"] as const;
 
 const DAMAGES_WITH_MANUAL_SEVERITY = ["scratch", "dent"];
@@ -65,27 +67,46 @@ export default function App() {
   const fetchImages = async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("unlabeled_images")
-      .select("id, image_url")
-      .order("image_index", { ascending: true })
-      .limit(20);
+    try {
+      const { data, error } = await supabase
+        .rpc("claim_next_image", { user_session: sessionId });
 
-    if (error) {
-      console.error(error);
+      if (error) {
+        console.error("Claim error:", error);
+        setImages([]);
+        setCurrentIndex(0);
+        setLoading(false);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        // No images left
+        setImages([]);
+        setCurrentIndex(0);
+        setLoading(false);
+        return;
+      }
+
+      // claim_next_image returns a single row in array form
+      const claimedImage = data[0];
+
+      const imageBatch = [claimedImage];
+
+      setImages(imageBatch);
+      setCurrentIndex(0);
+
+      // Optional preload (future-safe if you later batch claim)
+      preloadImages(imageBatch.slice(1, 5));
+
+    } catch (err) {
+      console.error("Unexpected error:", err);
       setImages([]);
       setCurrentIndex(0);
-    } else {
-      const fetchedImages = data ?? [];
-      setImages(fetchedImages);
-      setCurrentIndex(0);
-
-      // Preload next few images
-      preloadImages(fetchedImages.slice(1, 5));
     }
 
     setLoading(false);
   };
+
 
   useEffect(() => {
     fetchImages();
