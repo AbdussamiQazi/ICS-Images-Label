@@ -43,6 +43,8 @@ export default function App() {
   const [section, setSection] = useState<string | null>(null);
   const [expandedPart, setExpandedPart] = useState<string | null>(null);
   const [damages, setDamages] = useState<DamageEntry[]>([]);
+  const [noDamage, setNoDamage] = useState(false);
+
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,7 +127,7 @@ const recordDamage = (
   // Save & move next
   // -----------------------------
   const saveAndNext = async () => {
-    if (!image || !vehicleType || damages.length === 0) {
+    if (!image || !vehicleType || (!noDamage && damages.length === 0)) {
       alert("Incomplete annotation");
       return;
     }
@@ -151,7 +153,7 @@ const recordDamage = (
     setSection(null);
     setExpandedPart(null);
     setDamages([]);
-
+    setNoDamage(false);
     setSaving(false);
 
     // Move forward and preload further
@@ -165,6 +167,44 @@ const recordDamage = (
       fetchImages();
     }
   };
+
+  // -----------------------------
+  // Skip image
+  // -----------------------------
+  const skipImage = async () => {
+    if (!image) return;
+
+    const { error } = await supabase
+      .from("images") // IMPORTANT: real table, not view
+      .update({ skipped: true })
+      .eq("id", image.id);
+
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
+    // Reset local state
+    setVehicleType("");
+    setSection(null);
+    setExpandedPart(null);
+    setDamages([]);
+    setNoDamage(false);
+
+
+    // Move forward
+    if (currentIndex + 1 < images.length) {
+      setCurrentIndex((i) => {
+        const nextIndex = i + 1;
+        preloadImages(images.slice(nextIndex + 1, nextIndex + 4));
+        return nextIndex;
+      });
+    } else {
+      fetchImages();
+    }
+  };
+
 
   if (loading) {
     return (
@@ -211,6 +251,8 @@ const recordDamage = (
                 setSection(null);
                 setExpandedPart(null);
                 setDamages([]);
+                setNoDamage(false);
+
               }}
               className={`flex-1 p-3 rounded-lg font-semibold ${
                 vehicleType === v
@@ -222,6 +264,33 @@ const recordDamage = (
             </button>
           ))}
         </div>
+
+        {/* NO DAMAGE */}
+        {vehicleType && (
+          <div>
+            <button
+              onClick={() => {
+                setNoDamage((prev) => {
+                  const newValue = !prev;
+                  if (newValue) {
+                    setDamages([]); // clear any selected damages
+                    setSection(null);
+                    setExpandedPart(null);
+                  }
+                  return newValue;
+                });
+              }}
+              className={`w-full p-3 rounded-lg font-semibold ${
+                noDamage
+                  ? "bg-green-600 text-white"
+                  : "bg-gray-200"
+              }`}
+            >
+              {noDamage ? "✔ No Damage Selected" : "No Damage"}
+            </button>
+          </div>
+        )}
+
 
         {/* REGION */}
         {vehicleType && (
@@ -246,7 +315,7 @@ const recordDamage = (
         )}
 
         {/* PARTS */}
-        {vehicleType && section && (
+        {vehicleType && section && !noDamage && (
           <div className="space-y-2">
             {getPartsBySection(vehicleType, section).map((part) => {
               const isOpen = expandedPart === part;
@@ -370,6 +439,13 @@ const recordDamage = (
           </button>
 
           <button
+            onClick={skipImage}
+            className="flex-1 p-3 bg-red-500 text-white rounded-lg font-semibold"
+          >
+            ⏭ Skip
+          </button>
+
+          <button
             onClick={saveAndNext}
             disabled={saving}
             className="flex-1 p-3 bg-black text-white rounded-lg font-bold"
@@ -377,6 +453,7 @@ const recordDamage = (
             {saving ? "Saving…" : "Save & Next ▶"}
           </button>
         </div>
+
 
       </div>
     </div>
