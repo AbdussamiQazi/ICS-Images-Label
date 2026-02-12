@@ -85,7 +85,6 @@ export const PART_HIERARCHY = {
     safety: {
       safety_and_auxiliary: [
         "crash_guard",
-        "windshield",
       ],
     },
   },
@@ -103,8 +102,8 @@ export const PART_HIERARCHY = {
         "headlamp",
         "front_indicator_left",
         "front_indicator_right",
-        "mirror_left",
-        "mirror_right",
+        "left_mirror",
+        "right_mirror",
         "front_number_plate",
         "front_mudguard",
         "front_suspension",
@@ -119,8 +118,8 @@ export const PART_HIERARCHY = {
       ],
       fuel_and_frame: [
         "fuel_tank",
-        "leg_guard_left",
-        "leg_guard_right",
+        "left_leg_guard",
+        "right_leg_guard",
         "left_panel",
         "right_panel",
       ],
@@ -151,7 +150,7 @@ export const PART_HIERARCHY = {
         "tail_lamp",
         "rear_indicator_left",
         "rear_indicator_right",
-        "number_plate_bracket",
+        "rear_number_plate",
         "grab_rail",
         "rear_mudguard",
         "exhaust",
