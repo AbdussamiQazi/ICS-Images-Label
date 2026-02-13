@@ -242,7 +242,6 @@ const recordDamage = (
     const { error } = await supabase
       .from("images")
       .update({
-        skipped: true,
         assigned_to: null,
         assigned_at: null,
       })
