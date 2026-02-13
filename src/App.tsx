@@ -234,47 +234,45 @@ const recordDamage = (
   // -----------------------------
   // Skip image
   // -----------------------------
-  const skipImage = async () => {
-    if (!image) return;
+const skipImage = async () => {
+  if (!image) return;
 
-    const skippedIndex = currentIndex; // store current
+  const skippedIndex = currentIndex;
 
-    const { error } = await supabase
-      .from("images")
-      .update({
-        assigned_to: null,
-        assigned_at: null,
-      })
-      .eq("id", image.id);
+  const { error } = await supabase
+    .from("images")
+    .update({
+      assigned_to: null,
+      assigned_at: null,
+    })
+    .eq("id", image.id)
+    .eq("assigned_to", sessionId); // 🔒 only release if YOU own it
 
-    if (error) {
-      console.error(error);
-      alert(error.message);
-      return;
-    }
+  if (error) {
+    console.error(error);
+    alert(error.message);
+    return;
+  }
 
-    // Reset UI state
-    setVehicleType("");
-    setSection(null);
-    setExpandedPart(null);
-    setDamages([]);
-    setNoDamage(false);
+  // 🧹 Reset UI state
+  setVehicleType("");
+  setSection(null);
+  setExpandedPart(null);
+  setDamages([]);
+  setNoDamage(false);
 
-    // 🔥 MOVE FORWARD
-    const nextIndex = skippedIndex + 1;
+  // 🔥 Move to next image
+  const nextIndex = skippedIndex + 1;
 
-    if (nextIndex < images.length) {
-      setCurrentIndex(nextIndex);
-    }
+  if (nextIndex < images.length) {
+    setCurrentIndex(nextIndex);
+  }
 
-    // refill if low
-    if (images.length - nextIndex <= 2 && !refilling) {
-      fetchImages(3);
-    }
-  };
-
-
-
+  // 🔄 Refill if running low
+  if (images.length - nextIndex <= 2 && !refilling) {
+    fetchImages(3);
+  }
+};
 
   if (initialLoading) {
     return (
