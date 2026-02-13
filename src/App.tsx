@@ -106,10 +106,19 @@ export default function App() {
       }));
 
       setImages((prev) => {
-        const merged = [...prev, ...claimedImages];
-        preloadImages(claimedImages);
-        return merged;
-      });
+      const existingIds = new Set(prev.map((img) => img.id));
+
+      const newUniqueImages = claimedImages.filter(
+        (img) => !existingIds.has(img.id)
+      );
+
+      const merged = [...prev, ...newUniqueImages];
+
+      preloadImages(newUniqueImages);
+
+      return merged;
+    });
+
 
     } catch (err) {
       console.error("Unexpected error:", err);
