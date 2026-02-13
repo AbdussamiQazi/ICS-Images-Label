@@ -36,7 +36,15 @@ type DamageEntry = {
 
 export default function App() {
 
-  const [sessionId] = useState(() => crypto.randomUUID());
+  const [sessionId] = useState(() => {
+    const existing = localStorage.getItem("annotation_session");
+    if (existing) return existing;
+
+    const newId = crypto.randomUUID();
+    localStorage.setItem("annotation_session", newId);
+    return newId;
+  });
+
 
   const [images, setImages] = useState<ImageRow[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
