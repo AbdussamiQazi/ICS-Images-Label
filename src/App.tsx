@@ -198,16 +198,6 @@ const recordDamage = (
     }
     console.log("Current image:", image);
 
-    // ✅ Mark image as labeled and release lock
-    await supabase
-      .from("images")
-      .update({
-        labeled: true,
-        assigned_to: null,
-        assigned_at: null,
-      })
-      .eq("id", image.id);
-
     setVehicleType("");
     setSection(null);
     setExpandedPart(null);
@@ -239,6 +229,8 @@ const recordDamage = (
   const skipImage = async () => {
     if (!image) return;
 
+    const skippedIndex = currentIndex; // store current
+
     const { error } = await supabase
       .from("images")
       .update({
@@ -253,9 +245,6 @@ const recordDamage = (
       return;
     }
 
-    // 🔥 Remove skipped image locally
-    setImages((prev) => prev.filter((img) => img.id !== image.id));
-
     // Reset UI state
     setVehicleType("");
     setSection(null);
@@ -263,11 +252,19 @@ const recordDamage = (
     setDamages([]);
     setNoDamage(false);
 
-    // If few images left, refill
-    if (images.length <= 3 && !refilling) {
+    // 🔥 MOVE FORWARD
+    const nextIndex = skippedIndex + 1;
+
+    if (nextIndex < images.length) {
+      setCurrentIndex(nextIndex);
+    }
+
+    // refill if low
+    if (images.length - nextIndex <= 2 && !refilling) {
       fetchImages(3);
     }
   };
+
 
 
 
