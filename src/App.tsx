@@ -159,34 +159,84 @@ export default function App() {
   // -----------------------------
   // Toggle damage (select / deselect)
   // -----------------------------
-const recordDamage = (
-  part: string,
-  damage: string,
-  severity?: typeof SEVERITIES[number]
-) => {
-  const finalSeverity: typeof SEVERITIES[number] =
-    DAMAGES_WITH_IMPLICIT_MAJOR.includes(damage)
-      ? "major"
-      : severity!;
+  const EXCLUSIVE_FULL_DAMAGE = ["deformation", "detached", "missing"];
 
-  setDamages((prev) => {
-      const index = prev.findIndex(
+  const recordDamage = (
+    part: string,
+    damage: string,
+    severity?: typeof SEVERITIES[number]
+  ) => {
+    const finalSeverity: typeof SEVERITIES[number] =
+      DAMAGES_WITH_IMPLICIT_MAJOR.includes(damage)
+        ? "major"
+        : severity!;
+
+    setDamages((prev) => {
+      let updated = [...prev];
+
+      // All damages already selected for this part
+      const partDamages = updated.filter((d) => d.part === part);
+
+      // ==========================================
+      // TOGGLE OFF (if same damage already selected)
+      // ==========================================
+      const exists = partDamages.find(
         (d) =>
-          d.part === part &&
           d.damage === damage &&
           d.severity === finalSeverity
       );
 
-      // Toggle off if already selected
-      if (index !== -1) {
-        return prev.filter((_, i) => i !== index);
+      if (exists) {
+        return updated.filter(
+          (d) =>
+            !(
+              d.part === part &&
+              d.damage === damage &&
+              d.severity === finalSeverity
+            )
+        );
       }
 
-      return [...prev, { part, damage, severity: finalSeverity }];
+      // ==========================================
+      // RULE 1: deformation / detached / missing
+      // Completely exclusive for that part
+      // ==========================================
+      if (EXCLUSIVE_FULL_DAMAGE.includes(damage)) {
+        // Remove ALL damages for this part
+        updated = updated.filter((d) => d.part !== part);
+
+        return [...updated, { part, damage, severity: finalSeverity }];
+      }
+
+      // ==========================================
+      // RULE 2: scratch / dent → minor OR major only
+      // Remove same damage with different severity
+      // ==========================================
+      if (DAMAGES_WITH_MANUAL_SEVERITY.includes(damage)) {
+        updated = updated.filter(
+          (d) =>
+            !(
+              d.part === part &&
+              d.damage === damage
+            )
+        );
+      }
+
+      // ==========================================
+      // RULE 3: If selecting normal damage,
+      // remove exclusive full damages if present
+      // ==========================================
+      updated = updated.filter(
+        (d) =>
+          !(
+            d.part === part &&
+            EXCLUSIVE_FULL_DAMAGE.includes(d.damage)
+          )
+      );
+
+      return [...updated, { part, damage, severity: finalSeverity }];
     });
   };
-
-
 
   // -----------------------------
   // Save & move next
@@ -202,7 +252,9 @@ const recordDamage = (
     const { error } = await supabase.rpc("insert_annotation_secure", {
       p_image_id: image.id,
       p_vehicle_type: vehicleType,
-      p_damages: noDamage ? [] : damages,
+      p_damages: noDamage
+        ? [{ damage: "noDamage", severity: null }]
+        : damages,
       p_session: sessionId,
     });
 
@@ -397,89 +449,94 @@ const skipImage = async () => {
             {getPartsBySection(vehicleType, section).map((part) => {
               const isOpen = expandedPart === part;
 
-              const isSelected = (
-                p: string,
-                d: string,
-                s: typeof SEVERITIES[number]
-              ) =>
-                damages.some(
-                  (x) =>
-                    x.part === p &&
-                    x.damage === d &&
-                    x.severity === s
-                );
-
               return (
-                <div key={part} className="bg-white rounded-lg">
+                <div key={part} className="bg-white rounded-lg overflow-hidden">
+                  {/* PART HEADER */}
                   <button
                     onClick={() =>
                       setExpandedPart(isOpen ? null : part)
                     }
-                    className="w-full text-left p-3 capitalize font-medium flex justify-between"
+                    className="w-full text-left p-3 capitalize font-medium flex justify-between items-center"
                   >
                     {part.replaceAll("_", " ")}
                     <span>{isOpen ? "▾" : "▸"}</span>
                   </button>
 
+                  {/* DAMAGE LIST */}
                   {isOpen && (
                     <div className="border-t">
-                      {DAMAGE_TYPES.map((d) => (
-                        <div
-                          key={d}
-                          className="flex justify-between px-3 py-2 text-sm"
-                        >
-                          <span className="capitalize">{d}</span>
-                          <div className="flex gap-1">
-                            {DAMAGES_WITH_MANUAL_SEVERITY.includes(d) ? (
-                              SEVERITIES.map((s) => {
-                                const selected = damages.some(
-                                  (x) =>
-                                    x.part === part &&
-                                    x.damage === d &&
-                                    x.severity === s
-                                );
+                      {DAMAGE_TYPES.map((d) => {
+                        const isManualSeverity =
+                          DAMAGES_WITH_MANUAL_SEVERITY.includes(d);
 
-                                return (
-                                  <button
-                                    key={s}
-                                    onClick={() => recordDamage(part, d, s)}
-                                    className={`px-2 py-1 rounded ${
-                                      selected
-                                        ? "bg-black text-white"
-                                        : "bg-gray-200 hover:bg-black hover:text-white"
-                                    }`}
-                                  >
-                                    {s}
-                                  </button>
-                                );
-                              })
-                            ) : (
-                              (() => {
-                                const selected = damages.some(
-                                  (x) =>
-                                    x.part === part &&
-                                    x.damage === d &&
-                                    x.severity === "major"
-                                );
+                        // =========================
+                        // MANUAL SEVERITY DAMAGES
+                        // =========================
+                        if (isManualSeverity) {
+                          return (
+                            <div
+                              key={d}
+                              className="flex justify-between items-center px-3 py-3 text-sm border-b"
+                            >
+                              <span className="capitalize">{d}</span>
 
-                                return (
-                                  <button
-                                    onClick={() => recordDamage(part, d)}
-                                    className={`px-3 py-1 rounded ${
-                                      selected
-                                        ? "bg-green-600 text-white"
-                                        : "bg-gray-200 hover:bg-green-400 hover:text-white"
-                                    }`}
-                                  >
-                                    select
-                                  </button>
-                                );
-                              })()
+                              <div className="flex gap-2">
+                                {SEVERITIES.map((s) => {
+                                  const selected = damages.some(
+                                    (x) =>
+                                      x.part === part &&
+                                      x.damage === d &&
+                                      x.severity === s
+                                  );
+
+                                  return (
+                                    <button
+                                      key={s}
+                                      onClick={() =>
+                                        recordDamage(part, d, s)
+                                      }
+                                      className={`px-3 py-1 rounded-md transition ${
+                                        selected
+                                          ? "bg-green-600 text-white"
+                                          : "bg-gray-200 hover:bg-green-600 hover:text-white"
+                                      }`}
+                                    >
+                                      {s}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        // =========================
+                        // FULL WIDTH BUTTON DAMAGES
+                        // =========================
+                        const selected = damages.some(
+                          (x) =>
+                            x.part === part &&
+                            x.damage === d &&
+                            x.severity === "major"
+                        );
+
+                        return (
+                          <button
+                            key={d}
+                            onClick={() => recordDamage(part, d)}
+                            className={`w-full text-left px-3 py-3 text-sm border-b transition flex justify-between items-center ${
+                              selected
+                                ? "bg-green-600 text-white"
+                                : "bg-gray-50 hover:bg-green-100"
+                            }`}
+                          >
+                            <span className="capitalize">{d}</span>
+                            {selected && (
+                              <span className="font-semibold">✔</span>
                             )}
-                          </div>
-
-                        </div>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -487,6 +544,7 @@ const skipImage = async () => {
             })}
           </div>
         )}
+
 
         {/* SUMMARY */}
         {damages.length > 0 && (
