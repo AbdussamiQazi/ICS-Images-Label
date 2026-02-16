@@ -14,12 +14,19 @@ const SEVERITIES = ["minor", "major"] as const;
 
 const DAMAGES_WITH_MANUAL_SEVERITY = ["scratch", "dent"];
 
+const PART_SPECIFIC_DAMAGES: Record<string, string[]> = {
+  internal_wiring: ["exposed", "damaged"],
+};
+
+
 const DAMAGES_WITH_IMPLICIT_MAJOR = [
   "bent",
   "crack",
   "detached",
   "missing",
   "deformation",
+  "damaged",
+  "exposed",
 ];
 
 
@@ -448,6 +455,8 @@ const skipImage = async () => {
           <div className="space-y-2">
             {getPartsBySection(vehicleType, section).map((part) => {
               const isOpen = expandedPart === part;
+              const damageList =
+              PART_SPECIFIC_DAMAGES[part] ?? DAMAGE_TYPES;
 
               return (
                 <div key={part} className="bg-white rounded-lg overflow-hidden">
@@ -465,7 +474,7 @@ const skipImage = async () => {
                   {/* DAMAGE LIST */}
                   {isOpen && (
                     <div className="border-t">
-                      {DAMAGE_TYPES.map((d) => {
+                      {damageList.map((d) => {
                         const isManualSeverity =
                           DAMAGES_WITH_MANUAL_SEVERITY.includes(d);
 
