@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "./supabase";
 
 import {
-  DAMAGE_TYPES,
   getSections,
   getPartsBySection,
 } from "./parts";
+
+import { PART_DAMAGE_MAP } from "./damageConfig";
+
 
 import type { VehicleType } from "./parts";
 
@@ -14,19 +16,19 @@ const SEVERITIES = ["minor", "major"] as const;
 
 const DAMAGES_WITH_MANUAL_SEVERITY = ["scratch", "dent"];
 
-const PART_SPECIFIC_DAMAGES: Record<string, string[]> = {
-  internal_wiring: ["exposed", "damaged"],
-};
+
 
 
 const DAMAGES_WITH_IMPLICIT_MAJOR = [
-  "bent",
+  "bend",
   "crack",
   "detached",
   "missing",
-  "deformation",
   "damaged",
   "exposed",
+  "torn",
+  "cut",
+  "destroyed",
 ];
 
 
@@ -166,7 +168,7 @@ export default function App() {
   // -----------------------------
   // Toggle damage (select / deselect)
   // -----------------------------
-  const EXCLUSIVE_FULL_DAMAGE = ["deformation", "detached", "missing"];
+  const EXCLUSIVE_FULL_DAMAGE = ["destroyed", "detached", "missing"];
 
   const recordDamage = (
     part: string,
@@ -455,8 +457,10 @@ const skipImage = async () => {
           <div className="space-y-2">
             {getPartsBySection(vehicleType, section).map((part) => {
               const isOpen = expandedPart === part;
-              const damageList =
-              PART_SPECIFIC_DAMAGES[part] ?? DAMAGE_TYPES;
+              const damageList = PART_DAMAGE_MAP[part];
+                if (!damageList) return null;
+
+
 
               return (
                 <div key={part} className="bg-white rounded-lg overflow-hidden">
