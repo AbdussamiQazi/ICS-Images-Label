@@ -304,45 +304,27 @@ export default function App() {
   // -----------------------------
   // Skip image
   // -----------------------------
-const skipImage = async () => {
-  if (!image) return;
+  const skipImage = async () => {
+    if (!image) return;
 
-  const skippedIndex = currentIndex;
+    const nextIndex = currentIndex + 1;
 
-  const { error } = await supabase
-    .from("images")
-    .update({
-      assigned_to: null,
-      assigned_at: null,
-    })
-    .eq("id", image.id)
-    .eq("assigned_to", sessionId); // 🔒 only release if YOU own it
+    // Reset UI state
+    setVehicleType("");
+    setSection(null);
+    setExpandedPart(null);
+    setDamages([]);
+    setNoDamage(false);
 
-  if (error) {
-    console.error(error);
-    alert(error.message);
-    return;
-  }
+    if (nextIndex < images.length) {
+      setCurrentIndex(nextIndex);
+    }
 
-  // 🧹 Reset UI state
-  setVehicleType("");
-  setSection(null);
-  setExpandedPart(null);
-  setDamages([]);
-  setNoDamage(false);
+    if (images.length - nextIndex <= 2 && !refilling) {
+      fetchImages(3);
+    }
+  };
 
-  // 🔥 Move to next image
-  const nextIndex = skippedIndex + 1;
-
-  if (nextIndex < images.length) {
-    setCurrentIndex(nextIndex);
-  }
-
-  // 🔄 Refill if running low
-  if (images.length - nextIndex <= 2 && !refilling) {
-    fetchImages(3);
-  }
-};
 
   if (initialLoading) {
     return (

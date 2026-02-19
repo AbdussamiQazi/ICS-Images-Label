@@ -1,15 +1,4 @@
-// ===============================
-// Damage & Severity
-// ===============================
-export const DAMAGE_TYPES = [
-  "scratch",
-  "dent",
-  "bent",
-  "crack",
-  "detached",
-  "missing",
-  "deformation",
-] as const;
+
 
 export const SEVERITIES = ["minor", "major"] as const;
 
