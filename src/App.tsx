@@ -673,13 +673,28 @@ export default function App() {
 
         {/* SUMMARY */}
         {damages.length > 0 && (
-          <div className="bg-white p-3 rounded-lg text-sm space-y-1">
-            {damages.map((d, i) => (
-              <div key={i} className="flex justify-between">
-                <span>{d.part.replaceAll("_", " ")}</span>
-                <span className="font-semibold">
-                    {d.damage}
-                    {d.severity ? ` (${d.severity})` : ""}
+          <div className="bg-white p-3 rounded-lg text-sm space-y-2">
+            {Object.entries(
+              damages.reduce<Record<string, DamageEntry[]>>((acc, d) => {
+                if (!acc[d.part]) acc[d.part] = [];
+                acc[d.part].push(d);
+                return acc;
+              }, {})
+            ).map(([part, partDamages]) => (
+              <div key={part} className="flex justify-between">
+                <span className="capitalize">
+                  {part.replaceAll("_", " ")}
+                </span>
+
+                <span className="font-semibold text-right">
+                  {partDamages
+                    .map(
+                      (d) =>
+                        `${d.damage}${
+                          d.severity ? ` (${d.severity})` : ""
+                        }`
+                    )
+                    .join(", ")}
                 </span>
               </div>
             ))}
