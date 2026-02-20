@@ -33,8 +33,8 @@ export const PART_DAMAGE_MAP: Record<string, DamageType[]> = {
   engine_block: ["crack", "scratch", "destroyed"],
 
   // ===== BRAKES =====
-  front_brake: ["crack", "scratch", "missing", "destroyed"],
-  rear_brake: ["crack", "scratch", "missing", "destroyed"],
+  front_brake: ["crack", "scratch", "missing", "destroyed","bend"],
+  rear_brake: ["crack", "scratch", "missing", "destroyed","bend"],
 
   // ===== INDICATORS =====
   front_indicator_left: ["crack", "scratch", "detached", "missing", "destroyed"],
@@ -54,8 +54,8 @@ export const PART_DAMAGE_MAP: Record<string, DamageType[]> = {
   front_fairing: ["crack", "scratch", "detached", "missing", "destroyed"],
   front_mudguard: ["dent", "bend", "crack", "scratch", "detached", "missing","destroyed"],
   rear_mudguard: ["dent", "bend", "crack", "scratch", "detached", "missing","destroyed"],
-  left_panel: ["dent", "scratch", "detached", "missing", "destroyed"],
-  right_panel: ["dent", "scratch", "detached", "missing", "destroyed"],
+  left_panel: ["dent", "scratch", "detached", "missing", "destroyed","crack"],
+  right_panel: ["dent", "scratch", "detached", "missing", "destroyed","crack"],
   rear_cowl: ["dent", "crack", "scratch", "detached", "missing", "destroyed"],
 
   // ===== NUMBER PLATES =====
