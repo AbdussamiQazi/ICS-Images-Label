@@ -51,7 +51,7 @@ export const PART_DAMAGE_MAP: Record<string, DamageType[]> = {
   exhaust: ["dent", "bend", "crack", "scratch", "detached", "missing", "destroyed"],
 
   // ===== FAIRINGS & PANELS =====
-  front_fairing: ["crack", "scratch", "detached", "missing", "destroyed"],
+  front_fairing: ["crack", "scratch", "dent", "detached", "missing", "destroyed"],
   front_mudguard: ["dent", "bend", "crack", "scratch", "detached", "missing","destroyed"],
   rear_mudguard: ["dent", "bend", "crack", "scratch", "detached", "missing","destroyed"],
   left_panel: ["dent", "scratch", "detached", "missing", "destroyed","crack"],
