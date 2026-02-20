@@ -70,6 +70,9 @@ export default function App() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [refilling, setRefilling] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Fullscreen image state
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [lastTap, setLastTap] = useState(0);
 
   // -----------------------------
   // Image preloader
@@ -144,8 +147,21 @@ export default function App() {
 
 
   useEffect(() => {
-      fetchImages(5, true);
-    }, []);
+    const saved = localStorage.getItem("annotation_state");
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+
+      if (parsed.images?.length) {
+        setImages(parsed.images);
+        setCurrentIndex(parsed.currentIndex || 0);
+        setInitialLoading(false);
+        return;
+      }
+    }
+
+    fetchImages(5, true);
+  }, []);
     
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -163,7 +179,59 @@ export default function App() {
     return () => clearInterval(interval);
   }, [sessionId]);
 
+  // -----------------------------
+  // Auto Session Expiry (10 min inactivity)
+  // -----------------------------
+  useEffect(() => {
+    let timeout: ReturnType<typeof setTimeout>;
 
+    const resetTimer = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        localStorage.removeItem("annotation_state");
+        localStorage.removeItem("annotation_session");
+        console.log("Session expired due to inactivity");
+      }, 10 * 60 * 1000); // 10 minutes
+    };
+
+    window.addEventListener("mousemove", resetTimer);
+    window.addEventListener("touchstart", resetTimer);
+    window.addEventListener("keydown", resetTimer);
+
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("mousemove", resetTimer);
+      window.removeEventListener("touchstart", resetTimer);
+      window.removeEventListener("keydown", resetTimer);
+    };
+  }, []);
+
+  // Persist annotation state
+  useEffect(() => {
+    localStorage.setItem(
+      "annotation_state",
+      JSON.stringify({
+        images,
+        currentIndex,
+      })
+    );
+  }, [images, currentIndex]);
+
+  // -----------------------------
+  // Double Tap Fullscreen Toggle
+  // -----------------------------
+  const handleImageTap = () => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      setIsFullscreen((prev) => !prev);
+    }
+
+    setLastTap(now);
+  };
 
   // -----------------------------
   // Toggle damage (select / deselect)
@@ -348,14 +416,22 @@ export default function App() {
     <div className="max-w-md mx-auto">
 
       {/* STICKY IMAGE + NAME */}
-      <div className="sticky top-0 z-10 bg-gray-100 p-2 space-y-1">
+      <div
+        className={`sticky top-0 z-20 bg-gray-100 p-2 space-y-1 transition-all duration-300 ${
+          isFullscreen ? "h-screen flex flex-col justify-center" : ""
+        }`}
+      >
         <div className="text-xs font-mono truncate text-gray-600">
           {imageName}
         </div>
+
         <img
           src={image.image_url}
           loading="eager"
-          className="w-full max-h-[45vh] object-contain rounded-lg bg-white"
+          onClick={handleImageTap}
+          className={`w-full object-contain rounded-lg bg-white transition-all duration-300 ${
+            isFullscreen ? "h-[85vh]" : "max-h-[45vh]"
+          }`}
         />
       </div>
 
