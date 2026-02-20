@@ -74,6 +74,18 @@ export default function App() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [lastTap, setLastTap] = useState(0);
 
+  // Store annotations per image locally
+  const [annotationCache, setAnnotationCache] = useState<
+    Record<
+      string,
+      {
+        vehicleType: VehicleType | "";
+        damages: DamageEntry[];
+        noDamage: boolean;
+      }
+    >
+  >({});
+
   // -----------------------------
   // Image preloader
   // -----------------------------
@@ -215,10 +227,30 @@ export default function App() {
       JSON.stringify({
         images,
         currentIndex,
+        annotationCache,
       })
     );
   }, [images, currentIndex]);
 
+  // Restore annotation when current image changes
+  useEffect(() => {
+    if (!image) return;
+
+    const saved = annotationCache[image.id];
+
+    if (saved) {
+      setVehicleType(saved.vehicleType);
+      setDamages(saved.damages);
+      setNoDamage(saved.noDamage);
+    } else {
+      // reset if no saved state
+      setVehicleType("");
+      setDamages([]);
+      setNoDamage(false);
+      setSection(null);
+      setExpandedPart(null);
+    }
+  }, [currentIndex]);
   // -----------------------------
   // Double Tap Fullscreen Toggle
   // -----------------------------
@@ -351,6 +383,16 @@ export default function App() {
     setNoDamage(false);
     setSaving(false);
 
+    // Save annotation locally before moving
+    setAnnotationCache((prev) => ({
+      ...prev,
+      [image.id]: {
+        vehicleType,
+        damages,
+        noDamage,
+      },
+    }));
+
     // move locally to next image instantly
     const nextIndex = currentIndex + 1;
 
@@ -376,6 +418,18 @@ export default function App() {
     if (!image) return;
 
     const nextIndex = currentIndex + 1;
+
+    // Preserve existing annotation if already filled
+    if (image && (damages.length > 0 || noDamage)) {
+      setAnnotationCache((prev) => ({
+        ...prev,
+        [image.id]: {
+          vehicleType,
+          damages,
+          noDamage,
+        },
+      }));
+    }
 
     // Reset UI state
     setVehicleType("");
